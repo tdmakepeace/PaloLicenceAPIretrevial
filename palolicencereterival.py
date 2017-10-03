@@ -4,24 +4,33 @@ import sys
 import json
 
 
-from config import *
+try:
+    from config import *
+except ImportError:
+    for arg in sys.argv: 1
+# use the command line to call the function from a single script.
+    if arg == "setup":
+        print ""
+    else:
+        print ("Run palolicencereterival.py setup")
+        sys.exit(0)
 
 def setup(): 	
     
 # This section just registers the LicenceAPI key for future use, it should be a one of process and not repeated.
 # however if a customer regenerates the key for any reason, they would need to rerun. 
 
-        api = raw_input("What is the licenseing API key for your account:")
-        key = "api = '%s'" %api
-    ##    if the customer wanted to register the authcode to be used that is a option. 
-    ##    auth = raw_input("What is the licenseing API key for your account:")
-    ##    authcode = "authcode = '%s'" %auth
-   
-        
-        f = open('config.py', 'w')
-        print >> f, key # or f.write('...\n')
-    ##    print >> f, authcode # or f.write('...\n')
-        f.close()
+    api = raw_input("What is the licenseing API key for your account:")
+    key = "api = '%s'" %api
+##    if the customer wanted to register the authcode to be used that is a option. 
+##    auth = raw_input("What is the licenseing API key for your account:")
+##    authcode = "authcode = '%s'" %auth
+
+
+    f = open('config.py', 'w')
+    print >> f, key # or f.write('...\n')
+##    print >> f, authcode # or f.write('...\n')
+    f.close()
         
 def serialretrieve(): 
     
@@ -102,12 +111,12 @@ def serialregister():
         resp = json.loads(a)   
 
 
-        d = resp['UsedCount']
-        print  "the number of devices  = '%s'" %d
-
-        print(resp)
-
-        cpuid = raw_input("What is the cpuid of the device you wish to register:")
+#        d = resp['UsedCount']
+#        print  "the number of devices  = '%s'" %d
+#
+#        print(resp)
+#
+#        cpuid = raw_input("What is the cpuid of the device you wish to register:")
 
 
         ## for every licence create a file with the output.
@@ -206,7 +215,9 @@ def registeruser():
 
 
 def authcode():
-    
+# retrieves all the serial number against the authcode.
+# gives you the option to create the licence files for the serial number and authcode.
+#
     
     authcode = raw_input("What is the authcode you wish to validate:")
     data = "authcode=%s" %authcode
@@ -221,9 +232,9 @@ def authcode():
         resp = json.loads(a)   
 
         d = resp['UsedCount']
-        print  "the number of devices  = '%s'" %d
+        print  "the number of registered devices  = '%s'" %d
 
-        print(resp)
+#        print(resp)
 
 
         x=0
@@ -266,30 +277,12 @@ def authcode():
                 resp_str2.close()
 
             else:
-                print "nothing found"
+                print " "
 
             x=x+1    
 
         print "Finished"
     resp_str1.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    resp_str1.close()
-
        
 def help(): 	
     print "help menu"  
