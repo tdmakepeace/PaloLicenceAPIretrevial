@@ -6,3 +6,6 @@ You need to have the LicenseAPI key from the Palo Alto support site for this to 
 
 Initally, run the script
 palolicencereterival.py setup to create the config.py for storing the API key in.
+
+
+https://www.paloaltonetworks.com/documentation/80/virtualization/virtualization/license-the-vm-series-firewall/licensing-api
