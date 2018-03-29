@@ -1,8 +1,16 @@
-import urllib2
 import urllib
 import sys
 import json
+import urllib.request
+import urllib.parse
 
+
+
+#try:
+#    import urllib.request as urllib2
+#except ImportError:
+#    import urllib2
+	
 
 try:
     from config import *
@@ -10,7 +18,7 @@ except ImportError:
     for arg in sys.argv: 1
 # use the command line to call the function from a single script.
     if arg == "setup":
-        print ""
+        print ("")
     else:
         print ("Run palolicencereterival.py setup")
         sys.exit(0)
@@ -20,16 +28,16 @@ def setup():
 # This section just registers the LicenceAPI key for future use, it should be a one of process and not repeated.
 # however if a customer regenerates the key for any reason, they would need to rerun. 
 
-    api = raw_input("What is the licenseing API key for your account:")
-    key = "api = '%s'" %api
-##    if the customer wanted to register the authcode to be used that is a option. 
-##    auth = raw_input("What is the licenseing API key for your account:")
-##    authcode = "authcode = '%s'" %auth
-
-
     f = open('config.py', 'w')
-    print >> f, key # or f.write('...\n')
-##    print >> f, authcode # or f.write('...\n')
+    api = input("What is the licenseing API key for your account:")
+    key = "api = '%s'\n" %api
+    f.write(key)
+##    if the customer wanted to register a single authcode to be used 
+##    uncomment the following lines. 
+#    auth = input("What is the licenseing authcode you want to use for bulk provisioning:")
+#    authcode = "authcode = '%s'\n" %auth
+#    f.write(authcode)
+##    
     f.close()
         
 def serialretrieve(): 
@@ -37,153 +45,120 @@ def serialretrieve():
 # this section is to be able to retrieve the licence files for off line installations after the registration is 
 # completed either via the API or the portal directly.
 # the process generates the licence key files that can be imported. 
+# always import the support key first or the base VM key.
     
-    serial = raw_input("What is the Serial number of the licence you wish to retrieve:")
+##########  serial = '001606064532'
+    serial = input("What is the Serial number of the licence you wish to retrieve:")
     data = "serialNumber="+serial
-    
+    data = data.encode('ascii')
 #   debug
 #   print data
 
-    url = 'https://api.paloaltonetworks.com/api/license/activate'
-    headers = { 'apikey':api , 'Content-Type':'application/x-www-form-urlencoded' }
-    req = urllib2.Request(url, data , headers)
-    resp_str = urllib2.urlopen(req)
-
+    url = "https://api.paloaltonetworks.com/api/license/activate"
+#    headers = {'apikey':api }
+#    print(headers)
+    req = urllib.request.Request(url, data )
+#    print (req)
+    req.add_header( 'apikey', api )
+    resp_str = urllib.request.urlopen(req)
+#    print(resp_str)
+	
     for x in resp_str:
-# Count the number of licences in the file.
-        c = x.count('partidField')
         resp = json.loads(x)
-        
-# for every licence create a file with the output.
-# use the serial number and the licence type. 
-#
+#        print (resp)
+## Count the number of licences in the file.
+        c = (len(resp))
+       
+#        
+## for every licence create a file with the output.
+## use the serial number and the licence type. 
+##
         i=0
         while i < c:
             fName = serial+"-"+resp[i]['partidField']+".key"
-#Uncomment for debug
-#            print fName
-#            print (resp[i]['keyField'])
-
             file = open(fName,"w") 
             file.write(resp[i]['keyField'])
             file.close() 
             i+=1
-        
     resp_str.close()
-	
-
     
 
 def serialregister():
 # this section is to be able to register a device based on the authcode and the CPUID and UUID
 # It will retrieve the licence files for off line installations 
 
+    dname = input("What is the name you wish to have linked to the licences:")
+    cpuid = input("What is the cpuid of the device you wish to register:")
+    uuid = input("What is the uuid of the device you wish to register:")
+#   Comment out the following line if you have set up a static authcode in the setup.
+#   You need to uncomment the enablement of this in the set up lines 38-40.
+    authcode = input("What is the authcode of the device you wish to register:")
+#    
+  
     
-    cpuid = raw_input("What is the cpuid of the device you wish to register:")
-    uuid = raw_input("What is the uuid of the device you wish to register:")
-    authcode = raw_input("What is the authcode of the device you wish to register:")
-    
-    forms =  { "cpuid" : cpuid , "uuid" : uuid ,"authCode" : authcode }
-    data = urllib.urlencode(forms)
-    print data
+    data =  urllib.parse.urlencode({ "cpuid" : cpuid , "uuid" : uuid ,"authCode" : authcode })
+    data = data.encode('ascii')
+
+
+######################
 
     url = 'https://api.paloaltonetworks.com/api/license/activate'
-    headers = { 'apikey':api , 'Content-Type':'application/x-www-form-urlencoded' }
-    req = urllib2.Request(url, data , headers)
-    resp_str = urllib2.urlopen(req)
-
+  
+#    print(url)
+#    print (data)
+    req = urllib.request.Request(url=url, data=data )
+#    print (req)
+    req.add_header( 'apikey', api )
+    resp_str = urllib.request.urlopen(req)
+    
     for x in resp_str:
-# Count the number of licences in the file.
-        lic = x.count('partidField')
-        print  "you have '%s' licences" %lic
- 
-    resp_str.close()
+        resp = json.loads(x)
+#        print (resp)
+## Count the number of licences in the file.
+        c = (len(resp))
+       
+#        
+## for every licence create a file with the output.
+## use the serial number and the licence type. 
+##
 
-# map the authcode into the data field.
-    data = "authcode=%s" %authcode
-    url = 'https://api.paloaltonetworks.com/api/license/get'
-    headers = { 'apikey':api , 'Content-Type':'application/x-www-form-urlencoded' }
-    req = urllib2.Request(url, data , headers)
-    resp_str1 = urllib2.urlopen(req)
-
-    for a in resp_str1:
-
-        resp = json.loads(a)   
-
-
-#        d = resp['UsedCount']
-#        print  "the number of devices  = '%s'" %d
-#
-#        print(resp)
-#
-#        cpuid = raw_input("What is the cpuid of the device you wish to register:")
-
-
-        ## for every licence create a file with the output.
-        ## use the serial number and the licence type. 
-        ##
-        x=0
-        while x < d:
-            print (resp['UsedDeviceDetails'][x]['SerialNumber'])+","+(resp['UsedDeviceDetails'][x]['CPUID'])+","+(resp['UsedDeviceDetails'][x]['UUID'])
-            if cpuid == (resp['UsedDeviceDetails'][x]['CPUID']):
-                serial = (resp['UsedDeviceDetails'][x]['SerialNumber'])
-                data = "serialNumber="+serial
-
-            #   debug
-            #   print data
-
-                url = 'https://api.paloaltonetworks.com/api/license/activate'
-                headers = { 'apikey':api , 'Content-Type':'application/x-www-form-urlencoded' }
-                req = urllib2.Request(url, data , headers)
-                resp_str2 = urllib2.urlopen(req)
-
-                for y in resp_str2:
-            # Count the number of licences in the file.
-                    c = y.count('partidField')
-                    resp = json.loads(y)
-
-            # for every licence create a file with the output.
-            # use the serial number and the licence type. 
-            #
-                    i=0
-                    while i < c:
-                        fName = serial+"-"+resp[i]['partidField']+".key"
-            #Uncomment for debug
-            #            print fName
-            #            print (resp[i]['keyField'])
-
-                        file = open(fName,"w") 
-                        file.write(resp[i]['keyField'])
-                        file.close() 
-                        i+=1
-
-                resp_str2.close()
-
+        i=0
+        ## while statement added to address the issues with the fact the auto focus licences
+        ## does not have a partidfield to work with
+        ## so instead look at the feature Field and if autoforcus
+        ## manual set the file name.
+        while i < c:
+            if resp[i]['featureField'] == ('AutoFocus Device License'):
+                fName = dname+"-PAN-VM-autofocus.key"
+                file = open(fName,"w") 
+                file.write(resp[i]['keyField'])
+                file.close() 
+                i+=1
             else:
-                print "nothing found"
-
-            x=x+1    
-
-        print "Finished"
-    resp_str1.close()
-
-
+                fName = dname+"-"+resp[i]['partidField']+".key"
+                file = open(fName,"w") 
+                file.write(resp[i]['keyField'])
+                file.close() 
+                i+=1
+        
+    resp_str.close()
+ 
     
 def registeruser():
-# not working as i need a CSSP account to work with.
+# Only for the CSSP account to work with.
 
     
-    SERIAL = raw_input("The following details as required to be registered against a device \nWhat is the Serial number of the device you wish to register details against \n:")
-    CustomerAccountId = raw_input("Unique Reference number, used for billing tracking:")
-    CompanyName = raw_input("End User Company name:")
-    Address = raw_input("First Line of the address:")
-    Country = raw_input("Country code - Currently only US supported :")
-    Region = raw_input("Region (optional):")
-    City = raw_input("City:")
-    State = raw_input("State - Currently on CA supported :")
-    PostalCode = raw_input("Postal Code:")
-    EndUserContactEmail = raw_input("The End User Email address:")
-    Admin = raw_input("What is the ID of the Admin submitting the request:")
+    SERIAL = input("The following details as required to be registered against a device \nWhat is the Serial number of the device you wish to register details against \n:")
+    CustomerAccountId = input("Unique Reference number, used for billing tracking:")
+    CompanyName = input("End User Company name:")
+    Address = input("First Line of the address:")
+    Country = input("Country code - Currently only US supported :")
+    Region = input("Region (optional):")
+    City = input("City:")
+    State = input("State - Currently on CA supported :")
+    PostalCode = input("Postal Code:")
+    EndUserContactEmail = input("The End User Email address:")
+    Admin = input("What is the ID of the Admin submitting the request:")
     
     
     forms =  { 
@@ -200,18 +175,20 @@ def registeruser():
     "CreatedBy" : Admin 
     }
     
-    data = urllib.urlencode(forms)
-    print data
-
+    data =  urllib.parse.urlencode(forms)
+    data = data.encode('ascii')
+    print (data)
 
 
     url = 'https://api.paloaltonetworks.com/api/license/ReportEndUserInfo'
-    headers = { 'apikey':api , 'Content-Type':'application/json' }
-    req = urllib2.Request(url, data , headers)
-    resp_str = urllib2.urlopen(req)
-
+    
+    
+    req = urllib.request.Request(url=url, data=data )
+#    print (req)
+    req.add_header( 'apikey', api )
+    resp_str = urllib.request.urlopen(req)
     result = resp_str.read()
-    print result
+    print (result)
 
 
 def authcode():
@@ -219,76 +196,111 @@ def authcode():
 # gives you the option to create the licence files for the serial number and authcode.
 #
     
-    authcode = raw_input("What is the authcode you wish to validate:")
+    authcode = input("What is the authcode you wish to validate:")
     data = "authcode=%s" %authcode
+    data = data.encode('ascii')
 
     url = 'https://api.paloaltonetworks.com/api/license/get'
-    headers = { 'apikey':api , 'Content-Type':'application/x-www-form-urlencoded' }
-    req = urllib2.Request(url, data , headers)
-    resp_str1 = urllib2.urlopen(req)
-
-    for a in resp_str1:
-
-        resp = json.loads(a)   
-
-        d = resp['UsedCount']
-        print  "the number of registered devices  = '%s'" %d
-
+    req = urllib.request.Request(url=url, data=data )
+#    print (req)
+    req.add_header( 'apikey', api )
+    resp_str = urllib.request.urlopen(req)
+    
+    for x in resp_str:
+        resp = json.loads(x)
 #        print(resp)
-
-
-        x=0
-        while x < d:
-            print (resp['UsedDeviceDetails'][x]['SerialNumber'])+","+(resp['UsedDeviceDetails'][x]['CPUID'])+","+(resp['UsedDeviceDetails'][x]['UUID'])
-            licence = raw_input("Do you need me to generate licences, y or n :")
+        count = resp['UsedCount']
+        usedcount = ( "the number of registered devices  = " + str(count) )
+#        print (usedcount)
+        #print  ("the number of registered devices  = '%s'") d
+        c = (len(resp['UsedDeviceDetails']))
+        
+        i=0
+        while i < c:
+            display = (resp['UsedDeviceDetails'][i]['SerialNumber'])+","+(resp['UsedDeviceDetails'][i]['CPUID'])+","+(resp['UsedDeviceDetails'][i]['UUID'])
+            print (display)
+            licence = input("Do you need me to generate licences, y or n :")
     
             if licence == 'y':
-                serial = (resp['UsedDeviceDetails'][x]['SerialNumber'])
+                serial = (resp['UsedDeviceDetails'][i]['SerialNumber'])
                 data = "serialNumber="+serial
 
+                data = data.encode('ascii')
             #   debug
             #   print data
 
-                url = 'https://api.paloaltonetworks.com/api/license/activate'
-                headers = { 'apikey':api , 'Content-Type':'application/x-www-form-urlencoded' }
-                req = urllib2.Request(url, data , headers)
-                resp_str2 = urllib2.urlopen(req)
+                url2 = "https://api.paloaltonetworks.com/api/license/activate"
+            #    headers = {'apikey':api }
+            #    print(headers)
+                req2 = urllib.request.Request(url2, data )
+            #    print (req)
+                req2.add_header( 'apikey', api )
+                resp_str2 = urllib.request.urlopen(req2)
+            #    print(resp_str)
 
-                for y in resp_str2:
-            # Count the number of licences in the file.
-                    c = y.count('partidField')
-                    resp = json.loads(y)
+                for x2 in resp_str2:
+                    resp2 = json.loads(x2)
+            #        print (resp)
+            ## Count the number of licences in the file.
+                    c2 = (len(resp2))
 
-            # for every licence create a file with the output.
-            # use the serial number and the licence type. 
-            #
-                    i=0
-                    while i < c:
-                        fName = serial+"-"+resp[i]['partidField']+".key"
-            #Uncomment for debug
-            #            print fName
-            #            print (resp[i]['keyField'])
-
+            #        
+            ## for every licence create a file with the output.
+            ## use the serial number and the licence type. 
+            ##
+                    i2=0
+                    while i2 < c2:
+                        fName = serial+"-"+resp2[i2]['partidField']+".key"
                         file = open(fName,"w") 
-                        file.write(resp[i]['keyField'])
+                        file.write(resp2[i2]['keyField'])
                         file.close() 
-                        i+=1
-
-                resp_str2.close()
-
+                        i2+=1
+                resp_str2.close()                
+                            
+                
             else:
-                print " "
+                print ("")
+                 
 
-            x=x+1    
+            i+=1  
 
-        print "Finished"
-    resp_str1.close()
+        print ("Finished")
+    resp_str.close()
        
 def help(): 	
-    print "help menu"  
-    print " still to be written post testing"
-    print " need to provide fall automation examples"
+    print (" ") 
+    print (" The script has been written to help with the Palo Alto Networks")
+    print (" VM-Series licence retrevial for the CSSP program")
+    print (" The process will work for any PA unit being hardware or software")
+    print (" The process has been written to ask questions to drive the licence")
+    print (" generation to key files.")
+    print (" ")
+    print (" The options available are help,setup,serial,register,user,authcode")
+    print (" e.g. 'palolicencereterival.py help'")
+    print (" or 'palolicencereterival.py serial'")
+    print (" ")
+    print (" The 'setup' option is to register you LicenceAPI which you will get")
+    print ("  from the support portal")
+    print (" ")
+    print (" The 'serial' option allows you to retrieve licence for a specific ")
+    print (" Serial Number.")
+    print (" ")
+    print (" The register option, will take the CPUID and the UUID from a ")
+    print (" deployed VM, along with the authcode at registion and generate the ")
+    print (" licences. At this time the Serial number does not exist, so you are")
+    print (" asked to provide a local temp name for the licence file")
+    print (" ")
+    print (" The 'user' option is to submit the CSSP data to the CSSP portal, it")
+    print (" is only for CSSP customers.")
+    print (" ")
+    print (" The 'authcode' option will allow you to see all the serial numbers ")
+    print (" registered to that authcode, and allow you to generate the licences  ")
+    print (" for off line usage.")
+    print (" ")
+    print (" This has been written as a example of what is possible.")
+    print (" feel free to take apart and reuse")
     
+  
 if __name__ == '__main__':
     for arg in sys.argv: 1
 # use the command line to call the function from a single script.
@@ -305,7 +317,7 @@ if __name__ == '__main__':
     elif arg == "authcode":    
         authcode()
     else:
-        print " The options available are help,setup,serial,register,user,authcode"
-        print " e.g. 'palolicencereterival.py help'"
-        print " or 'palolicencereterival.py serial'"
+        print (" The options available are help,setup,serial,register,user,authcode")
+        print (" e.g. 'palolicencereterival.py help'")
+        print (" or 'palolicencereterival.py serial'")
        
